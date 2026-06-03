@@ -19,8 +19,7 @@ pipeline {
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                     sh '''
                         export PYTHONPATH=$PWD
-                        ./venv/bin/flake8 --exit-zero --format=pylint > flake8_report.txt
-                    '''
+                        ./venv/bin/flake8 --exit-zero --format=pylint src > flake8_report.txt                    '''
                     recordIssues (
                         tools: [flake8(pattern: 'flake8_report.txt')])
                 }
@@ -31,7 +30,7 @@ pipeline {
                     catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                     sh '''
                         export PYTHONPATH=$PWD
-                        ./venv/bin/bandit -r app -f txt -o bandit.txt
+                        ./venv/bin/bandit -r src -f txt -o bandit.txt
                     '''
                     recordIssues (
                         tools: [pyLint(pattern: 'bandit.txt')]
