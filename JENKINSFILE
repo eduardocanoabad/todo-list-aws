@@ -38,6 +38,18 @@ pipeline {
                 }
             }
         }
+        stage('Deploy SAM') {
+          steps {
+            catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+              sh '''
+                export PYTHONPATH=$PWD
+                sam --version
+                sam build --template-file template.yaml
+                sam deploy --config-env staging --no-confirm-changeset --no-fail-on-empty-changeset
+              '''
+            }
+          }
+        }
     }
   }
 }
