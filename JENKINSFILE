@@ -1,0 +1,44 @@
+pipeline {
+  agent any
+  stages {
+    stage('Set environment') {
+        steps {
+          catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+            sh '''
+              python3 -m venv venv
+              ./venv/bin/python -m pip install --upgrade pip
+              ./venv/bin/pip install -r requirements.txt
+            '''
+          }
+        }
+      }
+    stage('Non functional checks') {
+        parallel {
+            stage('Flake8') {
+              steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        export PYTHONPATH=$PWD
+                        ./venv/bin/flake8 --exit-zero --format=pylint > flake8_report.txt
+                    '''
+                    recordIssues (
+                        tools: [flake8(pattern: 'flake8_report.txt')])
+                }
+              }
+            }
+            stage('Bandit') {
+                steps {
+                    catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        export PYTHONPATH=$PWD
+                        ./venv/bin/bandit -r app -f txt -o bandit.txt
+                    '''
+                    recordIssues (
+                        tools: [pyLint(pattern: 'bandit.txt')]
+                    )}
+                }
+            }
+        }
+    }
+  }
+}
