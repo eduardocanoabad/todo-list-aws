@@ -19,7 +19,7 @@ pipeline {
                 export PYTHONPATH=$PWD
                 sam --version
                 sam build --template-file template.yaml
-                sam deploy --config-file samconfig.toml --config-env staging --no-confirm-changeset --no-fail-on-empty-changeset
+                sam deploy --config-file samconfig.toml --config-env production --no-confirm-changeset --no-fail-on-empty-changeset
               '''
             }
           }
