@@ -6,5 +6,5 @@ pyenvunittests
 .coverage
 coverage.xml
 /.idea/
-/flake8_report.txt
 /bandit.txt
+/flake8_report.txt
