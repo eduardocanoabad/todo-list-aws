@@ -87,6 +87,7 @@ pipeline {
                 export GIT_SSH_COMMAND="ssh -i $SSH_KEY -o StrictHostKeyChecking=no"
 
                 git checkout master
+                git pull origin master
                 git merge origin/develop -m "Merge develop to master"
 
                 git checkout --ours JENKINSFILE
