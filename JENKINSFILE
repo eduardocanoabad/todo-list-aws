@@ -67,9 +67,10 @@ pipeline {
                 export BASE_URL
                 echo "BASE_URL=$BASE_URL"
 
-                ./venv/bin/pytest test/integration/todoApiTest.py
+                ./venv/bin/pytest test/integration/todoApiTest.py --junitxml=result_integration.xml
               '''
             }
+            junit testResults: 'result_integration.xml'
           }
         }
 
