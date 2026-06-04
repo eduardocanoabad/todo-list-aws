@@ -10,8 +10,8 @@ pipeline {
               ./venv/bin/pip install -r requirements.txt
             '''
           }
+          stash includes: 'venv/**', name: 'venv'
         }
-        stash includes: 'venv/**', name: 'venv'
       }
     stage('Non functional checks') {
         parallel {
