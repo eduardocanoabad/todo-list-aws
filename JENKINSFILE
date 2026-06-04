@@ -88,11 +88,7 @@ pipeline {
 
                 git checkout master
                 git pull origin master
-                git merge origin/develop -m "Merge develop to master"
-
-                rm JENKINSFILE
-                git checkout --ours JENKINSFILE
-                git add JENKINSFILE
+                git merge -X ours origin/develop -m "Merge develop to master"
 
                 git push
               '''
