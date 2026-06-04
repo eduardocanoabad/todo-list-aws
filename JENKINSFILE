@@ -73,5 +73,27 @@ pipeline {
           }
         }
 
+        stage('Promote to Master') {
+          steps {
+            withCredentials([sshUserPrivateKey(credentialsId: 'github', keyFileVariable: 'SSH_KEY')]) {
+              sh '''
+                mkdir -p ~/.ssh
+                chmod 700 ~/.ssh
+                ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2>/dev/null
+
+                git config --global user.name "Jenkins"
+                git config --global user.email "Jenkins@jenkins.com"
+                export GIT_SSH_COMMAND="ssh -i $SSH_KEY -o StrictHostKeyChecking=no"
+
+                git checkout master
+
+                git merge origin/develop -m "Merge develop to master"
+
+                git push
+              '''
+            }
+          }
+        }
+
   }
 }
