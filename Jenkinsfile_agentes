@@ -2,6 +2,7 @@ pipeline {
   agent any
   stages {
     stage('Set environment') {
+        agent { label 'Agent1' }
         steps {
           catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
             sh '''
@@ -16,7 +17,7 @@ pipeline {
     stage('Non functional checks') {
         parallel {
             stage('Flake8') {
-              agent { label 'agent1' }
+              agent { label 'Agent1' }
               steps {
                 unstash 'venv'
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
@@ -29,7 +30,7 @@ pipeline {
               }
             }
             stage('Bandit') {
-                agent { label 'agent1' }
+                agent { label 'Agent1' }
                 steps {
                     unstash 'venv'
                     catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
@@ -45,6 +46,7 @@ pipeline {
         }
     }
         stage('Deploy SAM') {
+        agent { label 'Agent1' }
           steps {
             catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
               sh '''
@@ -58,7 +60,7 @@ pipeline {
         }
 
         stage('Run Tests') {
-          agent { label 'agent2' }
+          agent { label 'Agent2' }
           steps {
             unstash 'venv'
             catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
@@ -82,6 +84,7 @@ pipeline {
         }
 
         stage('Promote to Master') {
+          agent { label 'Agent2' }
           steps {
             withCredentials([sshUserPrivateKey(credentialsId: 'github', keyFileVariable: 'SSH_KEY')]) {
               sh '''
