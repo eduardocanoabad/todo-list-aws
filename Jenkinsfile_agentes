@@ -11,7 +11,7 @@ pipeline {
             '''
           }
         }
-        stash name: 'venv', includes: 'venv/**'
+        stash includes: 'venv/**', name: 'venv'
       }
     stage('Non functional checks') {
         parallel {
