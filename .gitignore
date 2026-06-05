@@ -8,3 +8,4 @@ coverage.xml
 /.idea/
 /bandit.txt
 /flake8_report.txt
+samconfig.toml
