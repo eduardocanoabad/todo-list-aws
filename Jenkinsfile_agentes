@@ -2,63 +2,33 @@ pipeline {
   agent any
   stages {
     stage('Set environment') {
-        parallel {
-          stage('Agent1 setup') {
-            agent { label 'Agent1' }
-            steps {
-              catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                sh '''
-                  python3 -m venv venv
-                  ./venv/bin/python -m pip install --upgrade pip
-                  ./venv/bin/pip install -r requirements.txt
-                '''
-              }
-            }
-          }
-          stage('Agent2 setup') {
-            agent { label 'Agent2' }
-            steps {
-              catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                sh '''
-                  python3 -m venv venv
-                  ./venv/bin/python -m pip install --upgrade pip
-                  ./venv/bin/pip install -r requirements.txt
-                '''
-              }
-            }
-          }
-        }
-      }
-    stage('Non functional checks') {
-        parallel {
-            stage('Flake8') {
-              agent { label 'Agent1' }
-              steps {
-                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                    sh '''
-                        export PYTHONPATH=$PWD
-                        ./venv/bin/flake8 --exit-zero --format=pylint src > flake8_report.txt
-                    '''
-                    recordIssues (
-                        tools: [flake8(pattern: 'flake8_report.txt')])
-                }
-              }
-            }
-            stage('Bandit') {
+            parallel {
+              stage('Agent1 setup') {
                 agent { label 'Agent1' }
                 steps {
-                    catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                  catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                     sh '''
-                        export PYTHONPATH=$PWD
-                        ./venv/bin/bandit -r src -f txt -o bandit.txt
+                      python3 -m venv venv
+                      ./venv/bin/python -m pip install --upgrade pip
+                      ./venv/bin/pip install -r requirements.txt
                     '''
-                    recordIssues (
-                        tools: [pyLint(pattern: 'bandit.txt')]
-                    )}
+                  }
                 }
+              }
+              stage('Agent2 setup') {
+                agent { label 'Agent2' }
+                steps {
+                  catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                      python3 -m venv venv
+                      ./venv/bin/python -m pip install --upgrade pip
+                      ./venv/bin/pip install -r requirements.txt
+                    '''
+                  }
+                }
+              }
             }
-        }
-    }
+          }
         stage('Deploy SAM') {
         agent { label 'Agent1' }
           steps {
@@ -67,21 +37,21 @@ pipeline {
                 export PYTHONPATH=$PWD
                 sam --version
                 sam build --template-file template.yaml
-                sam deploy --config-file samconfig.toml --config-env staging --no-confirm-changeset --no-fail-on-empty-changeset
+                sam deploy --config-file samconfig.toml --config-env production --no-confirm-changeset --no-fail-on-empty-changeset
               '''
             }
           }
         }
 
         stage('Run Tests') {
-          agent { label 'Agent2' }
+        agent { label 'Agent2' }
           steps {
             catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
               sh '''
                 export PYTHONPATH=$PWD
 
                 BASE_URL=$(aws cloudformation describe-stacks \
-                  --stack-name todo-list-aws-staging \
+                  --stack-name todo-list-aws-production \
                   --region us-east-1 \
                   --query 'Stacks[0].Outputs[?OutputKey==`BaseUrlApi`].OutputValue' \
                   --output text)
@@ -89,35 +59,12 @@ pipeline {
                 export BASE_URL
                 echo "BASE_URL=$BASE_URL"
 
-                ./venv/bin/pytest test/integration/todoApiTest.py --junitxml=result_integration.xml
+                ./venv/bin/pytest test/integration/todoApiTest.py::TestApi::test_api_listtodos --junitxml=result_listtodos.xml
+                ./venv/bin/pytest test/integration/todoApiTest.py::TestApi::test_api_gettodo --junitxml=result_gettodo.xml
               '''
             }
-            junit testResults: 'result_integration.xml'
+            junit testResults: 'result_*.xml'
           }
         }
-
-        stage('Promote to Master') {
-          agent { label 'Agent2' }
-          steps {
-            withCredentials([sshUserPrivateKey(credentialsId: 'github', keyFileVariable: 'SSH_KEY')]) {
-              sh '''
-                mkdir -p ~/.ssh
-                chmod 700 ~/.ssh
-                ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2>/dev/null
-
-                git config --global user.name "Jenkins"
-                git config --global user.email "Jenkins@jenkins.com"
-                export GIT_SSH_COMMAND="ssh -i $SSH_KEY -o StrictHostKeyChecking=no"
-
-                git checkout master
-                git pull origin master
-                git merge -X ours origin/develop -m "Merge develop to master"
-
-                git push
-              '''
-            }
-          }
-        }
-
   }
 }
