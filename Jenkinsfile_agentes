@@ -2,16 +2,31 @@ pipeline {
   agent any
   stages {
     stage('Set environment') {
-        agent { label 'Agent1' }
-        steps {
-          catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-            sh '''
-              python3 -m venv venv
-              ./venv/bin/python -m pip install --upgrade pip
-              ./venv/bin/pip install -r requirements.txt
-            '''
+        parallel {
+          stage('Agent1 setup') {
+            agent { label 'Agent1' }
+            steps {
+              catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                sh '''
+                  python3 -m venv venv
+                  ./venv/bin/python -m pip install --upgrade pip
+                  ./venv/bin/pip install -r requirements.txt
+                '''
+              }
+            }
           }
-          stash includes: 'venv/**', name: 'venv'
+          stage('Agent2 setup') {
+            agent { label 'Agent2' }
+            steps {
+              catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                sh '''
+                  python3 -m venv venv
+                  ./venv/bin/python -m pip install --upgrade pip
+                  ./venv/bin/pip install -r requirements.txt
+                '''
+              }
+            }
+          }
         }
       }
     stage('Non functional checks') {
@@ -19,11 +34,11 @@ pipeline {
             stage('Flake8') {
               agent { label 'Agent1' }
               steps {
-                unstash 'venv'
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                     sh '''
                         export PYTHONPATH=$PWD
-                        ./venv/bin/flake8 --exit-zero --format=pylint src > flake8_report.txt                    '''
+                        ./venv/bin/flake8 --exit-zero --format=pylint src > flake8_report.txt
+                    '''
                     recordIssues (
                         tools: [flake8(pattern: 'flake8_report.txt')])
                 }
@@ -32,7 +47,6 @@ pipeline {
             stage('Bandit') {
                 agent { label 'Agent1' }
                 steps {
-                    unstash 'venv'
                     catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                     sh '''
                         export PYTHONPATH=$PWD
@@ -62,7 +76,6 @@ pipeline {
         stage('Run Tests') {
           agent { label 'Agent2' }
           steps {
-            unstash 'venv'
             catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
               sh '''
                 export PYTHONPATH=$PWD
