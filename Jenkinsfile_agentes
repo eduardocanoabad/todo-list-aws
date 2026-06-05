@@ -7,6 +7,7 @@ pipeline {
                 agent { label 'Agent1' }
                 steps {
                   catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh 'whoami && hostname'
                     sh '''
                       python3 -m venv venv
                       ./venv/bin/python -m pip install --upgrade pip
